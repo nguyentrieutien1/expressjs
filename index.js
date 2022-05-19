@@ -45,7 +45,7 @@ app.post("/login", async (req, res) => {
     res.cookie("token", token);
     res.redirect("/");
   } else {
-    res.redirect("/login");
+    res.render("login", { err: "Loi sai mat khau hoac username" });
   }
 });
 
