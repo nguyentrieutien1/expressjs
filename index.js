@@ -4,6 +4,10 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const bodyParse = require("body-parser");
 const port = 3000;
+var cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+var hbs = require("hbs");
+const path = require("path");
 
 try {
   mongoose.connect(
@@ -17,19 +21,41 @@ try {
 const schema = new mongoose.Schema({ username: "string", password: "string" });
 const Account = mongoose.model("account", schema);
 app.use(cors());
+app.use(cookieParser());
+app.use(express.static(__dirname));
 app.use(bodyParse());
-app.get("/", async (req, res) => {
-  return res.json(await Account.find({}));
+app.set("views", path.join(__dirname));
+app.set("view engine", "hbs");
+// app.get("/", function (req, res) {
+//   return res.sendFile(path.resolve("./src/index.html"));
+// });
+
+app.get("/login", (req, res) => {
+  return res.render("login");
+});
+app.post("/login", async (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+  const findUser = await Account.findOne({
+    username: username,
+    password: password,
+  });
+  if (findUser) {
+    const token = jwt.sign({ username: "VMH" }, "hhh", { expiresIn: "10s" });
+    res.cookie("token", token);
+    res.redirect("/");
+  } else {
+    res.redirect("/login");
+  }
 });
 
-app.post("/account/create", async function (req, res) {
-  const data = req.body;
-  console.log(data);
+app.get("/", (req, res) => {
+  const token = req.cookies.token;
   try {
-    await Account.create(data);
-    return res.json({ message: "Create success", statusCode: 200 });
+    jwt.verify(token, "hhh");
+    return res.render("home");
   } catch (error) {
-    return res.json({ message: "Create fail", statusCode: 400 });
+    res.redirect("/login");
   }
 });
 app.listen(port, () => {
